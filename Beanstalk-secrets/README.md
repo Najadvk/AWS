@@ -1,5 +1,4 @@
 ## CloudGoat – Beanstalk Secrets
-
 A walkthrough of the Beanstalk Secrets scenario from CloudGoat.
 
 This lab demonstrates how a small configuration mistake in a cloud environment can lead to privilege escalation and full account compromise.
