@@ -1,8 +1,20 @@
 # Beanstalk Secrets Walkthrough
 
-This document describes the process used to complete the Beanstalk Secrets scenario from CloudGoat.
-
+This document describes the process used to complete the Beanstalk Secrets scenario from CloudGoat. 
 The goal of the lab is to demonstrate how exposed credentials and IAM misconfigurations can lead to privilege escalation in an AWS environment.
+
+
+## Attack Path
+
+1. Initial AWS credentials obtained
+2. Elastic Beanstalk enumeration
+3. Secondary credentials discovered
+4. IAM privilege escalation
+5. Admin access obtained
+6. Secrets Manager enumeration
+7. Final flag retrieved
+
+---
 
 ## Creating the Scenario
 
