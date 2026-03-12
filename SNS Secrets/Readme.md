@@ -6,7 +6,6 @@ This lab demonstrates how misconfigured permissions in **Amazon SNS** and **API 
 
 The scenario focuses on discovering an SNS topic, subscribing to it, receiving a leaked API key through notifications, and using that key to access an API Gateway endpoint.
 
-All credentials and identifiers shown in this repository are **sanitized placeholders**, and the lab environment used for this exercise has already been **destroyed**.
 
 ---
 
