@@ -4,7 +4,6 @@ This document demonstrates the exploitation process for the **CloudGoat SNS Secr
 
 The goal of the lab is to show how **SNS permissions combined with API Gateway misconfigurations** can lead to disclosure of sensitive information such as **API keys**.
 
-All credentials and identifiers have been **sanitized with `xxxx`** and the lab environment has already been **destroyed**.
 
 ---
 
