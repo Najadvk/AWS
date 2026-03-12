@@ -43,7 +43,7 @@ Configuring the profile - aws sts get-caller identity --profile beanstalk
 }
 ```
 ## Enumerating Elastic Beanstalk using Pacu
-Use Pacu to enumerate Elastic Beanstalk applications and environments
+Use Pacu to enumerate Elastic Beanstalk applications and environments (to assess the permissions of the low-privileged user by enumerating available IAM actions)
 
 Open the Pacu and start new session (0) -> import_keys beanstalk -> search for beanstalk -> Run elasticbeanstalk
 ```bash
