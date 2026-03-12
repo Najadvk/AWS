@@ -330,7 +330,7 @@ iam:createaccesskey
 
 ## Privilege Escalation with CreateAccessKey
 
-Next make use of the Pacu privilege escalation scanner in pacu which we found when we ran iam__enum_permissions in Pacu to identify exploitable methods
+Next make use of the privilege escalation scanner  which we found when we ran iam__enum_permissions in Pacu to identify exploitable methods
 
 
 ``` bash
