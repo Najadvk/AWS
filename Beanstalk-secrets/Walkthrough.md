@@ -25,11 +25,16 @@ cloudgoat create beanstalk_secrets
 ```
 # Initial Access
 ## Configure the AWS CLI profile:
-Configuring the profile - aws sts get-caller identity --profile beanstalk
 ```bash
 aws configure --profile beanstalk
 ```
+## Verfiy Access
+```bash
+Configuring the profile - aws sts get-caller identity --profile beanstalk
+```
 ```json
+//output
+
 {
   "UserId": "AIDA****************",
   "Account": "114091642599",
