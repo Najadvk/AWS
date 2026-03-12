@@ -24,6 +24,9 @@ The lab environment is created using CloudGoat.
 cloudgoat create beanstalk_secrets
 ```
 # Initial Access
+
+After launching the scenario, you will be provided with an AWS Access Key ID and Secret Access Key for the low-privileged user. Configure the AWS CLI profile with these credentials
+
 ## Configure the AWS CLI profile:
 ```bash
 aws configure --profile beanstalk
