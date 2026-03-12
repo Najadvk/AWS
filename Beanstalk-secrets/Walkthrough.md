@@ -55,12 +55,8 @@ run elasticbeanstalk__enum --region us-east-1
 ```bash
 run elasticbeanstalk__enum --region us-east-1
 ```
-
-
-## Elastic Beanstalk Enumeration Output
-
 ```javascript
-// Pacu Module Output
+// elasticbeanstalk__enum Output
 
 Running module elasticbeanstalk__enum...
 [elasticbeanstalk__enum] Enumerating BeanStalk data in region us-east-1...
