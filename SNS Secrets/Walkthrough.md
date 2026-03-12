@@ -353,12 +353,4 @@ Response:
 
 This confirms successful access to the API and retrieval of sensitive information.
 
-The attack chain involved:
 
-1. Obtaining initial IAM credentials
-2. Enumerating SNS topics
-3. Subscribing to the SNS topic
-4. Receiving a leaked API Gateway key
-5. Enumerating API Gateway resources
-6. Constructing the API endpoint
-7. Accessing the protected endpoint to retrieve the final flag
