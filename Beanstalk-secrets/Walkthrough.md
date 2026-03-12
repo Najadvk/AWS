@@ -36,8 +36,6 @@ aws configure --profile beanstalk
 Configuring the profile - aws sts get-caller identity --profile beanstalk
 ```
 ```json
-// output
-
 {
   "UserId": "AIDA****************",
   "Account": "114091642599",
