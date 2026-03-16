@@ -322,7 +322,7 @@ https://[API-ID].execute-api.us-east-1.amazonaws.com/[stageName]/[resourcePath]
 Example:
 
 ```javascript
-https://xxxxxx.execute-api.us-east-1.amazonaws.com/prod-xxxx/user-data -H 'x-api-key: xxxxXXXXXXXXXXXXXXXX'
+curl https://xxxxxx.execute-api.us-east-1.amazonaws.com/prod-xxxx/user-data \ -H "x-api-key: xxxxXXXXXXXXXXXXXXXX"
 ```
 
 ---
@@ -332,8 +332,7 @@ https://xxxxxx.execute-api.us-east-1.amazonaws.com/prod-xxxx/user-data -H 'x-api
 Using the leaked **API Gateway key**, we were able to access the protected API endpoint.
 
 ```javascript
-curl https://xxxxxx.execute-api.us-east-1.amazonaws.com/prod-xxxx/user-data \
--H 'x-api-key: xxxxXXXXXXXXXXXXXXXX'
+curl https://xxxxxx.execute-api.us-east-1.amazonaws.com/prod-xxxx/user-data \ -H 'x-api-key: xxxxXXXXXXXXXXXXXXXX'
 ```
 
 Response:
@@ -353,4 +352,25 @@ Response:
 
 This confirms successful access to the API and retrieval of sensitive information.
 
+# Conclusion
+
+This scenario demonstrates how overly permissive SNS permissions can lead to sensitive data exposure. 
+
+By allowing unauthenticated subscriptions to an SNS topic, an attacker was able to receive notifications containing an API key. This key was then used to access an API Gateway endpoint and retrieve sensitive user data.
+
+This highlights the importance of:
+
+- Restricting SNS subscription permissions
+- Avoiding sensitive information in notification messages
+- Properly securing API Gateway resources
+- Applying least privilege IAM policies
+
+# Key Misconfigurations Identified
+
+1. SNS topic allowed external subscription.
+2. Sensitive API key was included in SNS notification messages.
+3. API Gateway relied only on API key authentication.
+4. IAM policy allowed enumeration of SNS topics.
+
+   
 
